@@ -1,0 +1,79 @@
+# Запрос и сохрание
+def search_and_save_data(url, data):
+    r = session.post(url, data=data)
+    r = json.loads(r.content.decode())
+    res = r['data']
+
+    guide = res[0]['guid']
+    name = res[0]['name']
+    print(guide, name)
+
+    # Проверяем наличие файла
+    filename = f'Гуиды {date}.xls'
+    if not os.path.exists(filename):
+        # Создаем новый файл Excel и добавляем заголовки столбцов
+        workbook = xlwt.Workbook()
+        sheet = workbook.add_sheet('Лист 1')
+        sheet.write(0, 0, 'GUID')
+        sheet.write(0, 1, 'Название')
+        workbook.save(filename)
+
+    # Открываем существующий файл Excel для чтения
+    rb = xlrd.open_workbook(filename)
+    # Создаем его копию для изменения
+    wb = copy(rb)
+    # Получаем первый лист (индекс 0)
+    sheet = wb.get_sheet(0)
+    # Определяем следующую свободную строку для добавления данных
+    next_row = rb.sheet_by_index(0).nrows
+    # Добавляем новые данные
+    sheet.write(next_row, 0, guide)
+    sheet.write(next_row, 1, name)
+    wb.save(filename)
+
+# Поиск гуидов
+def guid():
+    url = 'http://***/nomenclature_finder/data_table/get_data'
+    option = input("""
+Как искать товар:
+1) По наименованию
+2) По коду товара
+3) По штрихкоду
+0) Главное меню
+Ваш выбор (для выхода введите "0"):
+    """)
+    if option == '0':
+        menu()
+    while option != '0':
+        if option == '1':
+            while True:
+                имя = input('Имя товара (для выхода введите "0"): ')
+                if имя == '0':
+                    guid()
+                dat = {
+                    'custom_parameters[nomenclature_name]': f'{имя}'
+                }
+                search_and_save_data(url, dat)
+        elif option == '2':
+            while True:
+                код = input('Код товара (для выхода введите "0"): ')
+                if код == '0':
+                    guid()
+                dat = {
+                    'custom_parameters[nomenclature_id]': f'{код}'
+                }
+                search_and_save_data(url, dat)
+        elif option == '3':
+            while True:
+                barcod = input('Отсканируйте товар (для выхода введите "0"): ')
+                if barcod == '0':
+                    guid()
+                url = 'https://wms.vseinstrumenti.ru/mobile/api/barcode?barcode=%s' % (barcod)
+                r = session.get(url)
+                r = json.loads(r.content.decode())
+                result = r['result']["name"]
+
+                dat = {
+                    'custom_parameters[nomenclature_id]': f'{result}'
+                }
+                search_and_save_data(url, dat)
