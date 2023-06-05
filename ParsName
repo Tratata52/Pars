@@ -1,0 +1,18 @@
+def barcode():
+    barcod = input('Отсканируйте товар (для выхода введите "0"): ')
+    if barcod == '0':
+        menu()
+    url = 'https://***/api/barcode?barcode=%s' % (barcod)
+    r = session.get(url)
+    r = json.loads(r.content.decode())
+    result = r['result']["name"]
+    if result in dict_result.keys():
+        dict_result[result] += 1
+    else:
+        dict_result[result] = 1
+    print(f"{result} - {dict_result[result]} шт")
+    with open(f"Список излишков {date}.txt", "w+") as f:
+        f.seek(0)
+        for key, val in dict_result.items():
+            f.write(f'{key} - {val} \n')
+    barcode()
